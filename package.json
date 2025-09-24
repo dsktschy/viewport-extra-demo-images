@@ -1,0 +1,13 @@
+{
+  "name": "viewport-extra-demo-images",
+  "version": "0.0.0",
+  "description": "Generates demo images for Viewport Extra",
+  "author": "dsktschy (https://github.com/dsktschy)",
+  "homepage": "https://github.com/dsktschy/viewport-extra-demo-images#readme",
+  "bugs": "https://github.com/dsktschy/viewport-extra-demo-images/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dsktschy/viewport-extra-demo-images.git"
+  },
+  "type": "module"
+}
