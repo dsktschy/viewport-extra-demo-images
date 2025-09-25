@@ -11,10 +11,13 @@
   },
   "type": "module",
   "devDependencies": {
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
     "cspell": "9.2.1",
     "lefthook": "1.13.4"
   },
   "scripts": {
+    "commitcheck": "commitlint --edit",
     "spellcheck": "cspell lint --no-must-find-files"
   }
 }

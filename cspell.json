@@ -17,6 +17,7 @@
     "sveltekit",
     "vite",
     "vitepress",
-    "dsktschy"
+    "dsktschy",
+    "commitcheck"
   ]
 }

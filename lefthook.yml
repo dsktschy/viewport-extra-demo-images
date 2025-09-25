@@ -1,3 +1,7 @@
+commit-msg:
+  jobs:
+    - run: npm run commitcheck -- {1}
+
 pre-commit:
   piped: true
   jobs:
