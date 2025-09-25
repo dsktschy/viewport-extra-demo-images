@@ -18,6 +18,9 @@
     "vite",
     "vitepress",
     "dsktschy",
-    "commitcheck"
+    "commitcheck",
+    "stabilizable",
+    "autorelease",
+    "dpkg"
   ]
 }

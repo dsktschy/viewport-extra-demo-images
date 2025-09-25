@@ -1,0 +1,33 @@
+name: Create release pull request
+
+on:
+  workflow_dispatch:
+    inputs:
+      versioning_strategy:
+        description: Versioning Strategy
+        required: true
+        default: default
+        type: choice
+        options:
+          - default
+          - prerelease
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create_release_pull_request:
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Bump version and create pull request
+        uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # 4.4.0
+        with:
+          config-file: release-please-config.${{ inputs.versioning_strategy }}.json
+          skip-github-release: true
+          target-branch: ${{ github.ref_name }}

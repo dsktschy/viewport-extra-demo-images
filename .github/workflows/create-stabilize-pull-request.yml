@@ -1,0 +1,97 @@
+name: Create stabilize pull request
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check_stabilizable:
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install Ubuntu dependencies
+        shell: bash
+        run: |
+          package_list=(
+            jq
+          )
+          missing_package_list=()
+          for package in "${package_list[@]}"; do
+            if ! dpkg-query -W "${package}"; then
+              missing_package_list+=("${package}")
+            fi
+          done
+          if [ ${#missing_package_list[@]} -ne 0 ]; then
+            sudo apt-get update
+            sudo apt-get install -y "${missing_package_list[@]}"
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Define variables
+        id: define_variables
+        shell: bash
+        run: |
+          version=$(jq -r .version package.json)
+          echo "version: ${version}"
+          stable_version="${version%%-*}"
+          stabilizable=no
+          if [[ "${version}" != "${stable_version}" ]]; then
+            stabilizable=yes
+          fi
+          echo "stabilizable: ${stabilizable}"
+          echo "stable_version=${stable_version}" >> "${GITHUB_OUTPUT}"
+          echo "stabilizable=${stabilizable}" >> "${GITHUB_OUTPUT}"
+    outputs:
+      stable_version: ${{ steps.define_variables.outputs.stable_version }}
+      stabilizable: ${{ steps.define_variables.outputs.stabilizable }}
+
+  create_stabilize_pull_request:
+    needs: check_stabilizable
+    if: ${{ needs.check_stabilizable.outputs.stabilizable == 'yes' }}
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install Ubuntu dependencies
+        shell: bash
+        run: |
+          package_list=(
+            git
+          )
+          missing_package_list=()
+          for package in "${package_list[@]}"; do
+            if ! dpkg-query -W "${package}"; then
+              missing_package_list+=("${package}")
+            fi
+          done
+          if [ ${#missing_package_list[@]} -ne 0 ]; then
+            sudo apt-get update
+            sudo apt-get install -y "${missing_package_list[@]}"
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Commit to stabilize
+        shell: bash
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git commit --allow-empty -m "chore: stabilize ${STABLE_VERSION}" -m "Release-As: ${STABLE_VERSION}"
+        env:
+          STABLE_VERSION: ${{ needs.check_stabilizable.outputs.stable_version }}
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
+        with:
+          title: 'chore: stabilize ${{ needs.check_stabilizable.outputs.stable_version }}'
+          body: Created by the create-stabilize-pull-request workflow.
+          labels: stabilize

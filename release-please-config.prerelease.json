@@ -1,0 +1,14 @@
+{
+  "skip-changelog": true,
+  "include-component-in-tag": false,
+  "pull-request-title-pattern": "chore: release${component} ${version}",
+  "label": "autorelease: pending,versioning_strategy: prerelease",
+  "versioning": "prerelease",
+  "prerelease": true,
+  "prerelease-type": "rc.0",
+  "packages": {
+    ".": {
+      "release-type": "node"
+    }
+  }
+}

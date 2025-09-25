@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    if: >-
+      ${{
+        github.event.pull_request.merged &&
+        contains(github.event.pull_request.labels.*.name, 'autorelease: pending')
+      }}
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install Ubuntu dependencies
+        shell: bash
+        run: |
+          package_list=(
+            jq
+          )
+          missing_package_list=()
+          for package in "${package_list[@]}"; do
+            if ! dpkg-query -W "${package}"; then
+              missing_package_list+=("${package}")
+            fi
+          done
+          if [ ${#missing_package_list[@]} -ne 0 ]; then
+            sudo apt-get update
+            sudo apt-get install -y "${missing_package_list[@]}"
+          fi
+
+      - name: Define variables
+        id: define_variables
+        run: |
+          label_list=$(jq -r ".pull_request.labels[].name" "${GITHUB_EVENT_PATH}")
+          versioning_strategy=$(echo "${label_list}" | grep "^versioning_strategy: " | sed "s/^versioning_strategy: //")
+          echo "versioning_strategy=${versioning_strategy}" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish tag and release
+        uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # 4.4.0
+        with:
+          config-file: release-please-config.${{ steps.define_variables.outputs.versioning_strategy }}.json
+          skip-github-pull-request: true
+          target-branch: ${{ github.event.pull_request.base.ref }}
