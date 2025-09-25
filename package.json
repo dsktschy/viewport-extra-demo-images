@@ -9,5 +9,12 @@
     "type": "git",
     "url": "git+https://github.com/dsktschy/viewport-extra-demo-images.git"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "cspell": "9.2.1",
+    "lefthook": "1.13.4"
+  },
+  "scripts": {
+    "spellcheck": "cspell lint --no-must-find-files"
+  }
 }
