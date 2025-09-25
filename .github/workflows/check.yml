@@ -33,3 +33,7 @@ jobs:
       - name: Check spelling
         shell: bash
         run: npm run spellcheck -- .
+
+      - name: Lint and format code
+        shell: bash
+        run: npm run stylecheck:code -- .

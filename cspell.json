@@ -21,6 +21,7 @@
     "commitcheck",
     "stabilizable",
     "autorelease",
-    "dpkg"
+    "dpkg",
+    "stylecheck"
   ]
 }

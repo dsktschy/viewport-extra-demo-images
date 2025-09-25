@@ -6,3 +6,5 @@ pre-commit:
   piped: true
   jobs:
     - run: npm run spellcheck -- {staged_files}
+    - run: npm run stylecheck:code -- --write {staged_files}
+      stage_fixed: true
