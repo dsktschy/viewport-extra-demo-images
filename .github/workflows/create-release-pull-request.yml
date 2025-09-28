@@ -26,8 +26,125 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Bump version and create pull request
+        id: bump_version_and_create_pull_request
         uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # 4.4.0
         with:
           config-file: release-please-config.${{ inputs.versioning_strategy }}.json
           skip-github-release: true
           target-branch: ${{ github.ref_name }}
+    outputs:
+      prs_created: ${{ steps.bump_version_and_create_pull_request.outputs.prs_created }}
+      pr: ${{ steps.bump_version_and_create_pull_request.outputs.pr }}
+
+  generate_artifacts:
+    needs: create_release_pull_request
+    if: ${{ fromJSON(needs.create_release_pull_request.outputs.prs_created) }}
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install Ubuntu dependencies
+        shell: bash
+        run: |
+          package_list=(
+            jq
+            netcat-openbsd
+            ffmpeg
+          )
+          missing_package_list=()
+          for package in "${package_list[@]}"; do
+            if ! dpkg-query -W "${package}"; then
+              missing_package_list+=("${package}")
+            fi
+          done
+          if [ ${#missing_package_list[@]} -ne 0 ]; then
+            sudo apt-get update
+            sudo apt-get install -y "${missing_package_list[@]}"
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Define variables
+        id: define_variables
+        run: |
+          key_list=(
+            ARTIFACT_NAME
+            FLOWS_DIRECTORY
+            HOST
+            IMAGE_WIDTH
+            IMAGES_DIRECTORY
+            PAGE_LOAD_DELAY
+            PAGE_RESPONSE_DELAY
+            PORT
+            VIDEOS_DIRECTORY
+          )
+          for key in "${key_list[@]}"; do
+            value=$(jq -r ".${key}" constants.json)
+            echo "${key}=${value}" >> "${GITHUB_OUTPUT}"
+          done
+          pr_number=$(echo "${PR}" | jq -r .number)
+          echo "pr_number=${pr_number}" >> "${GITHUB_OUTPUT}"
+        env:
+          PR: ${{ needs.create_release_pull_request.outputs.pr }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install Node.js dependencies
+        shell: bash
+        run: npm ci
+
+      - name: Build pages
+        shell: bash
+        run: npm run build
+
+      - name: Generate videos
+        shell: bash
+        run: |
+          npm run preview &
+          until nc -z -w1 "${HOST}" "${PORT}"; do sleep 1; done
+          npm run generate-videos -- "${FLOWS_DIRECTORY}"
+        env:
+          FLOWS_DIRECTORY: ${{ steps.define_variables.outputs.FLOWS_DIRECTORY }}
+          HOST: ${{ steps.define_variables.outputs.HOST }}
+          PORT: ${{ steps.define_variables.outputs.PORT }}
+
+      - name: Convert videos to images
+        shell: bash
+        run: |
+          mkdir -p "${IMAGES_DIRECTORY}"
+          flow_name_list=($(npm run list-flow-names --silent -- "${FLOWS_DIRECTORY}"))
+          page_delay=$(awk "BEGIN {print (${PAGE_LOAD_DELAY} + ${PAGE_RESPONSE_DELAY}) / 1000}")
+          for flow_name in "${flow_name_list[@]}"; do
+            frame_rate_expression=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "${VIDEOS_DIRECTORY}${flow_name}.webm")
+            frame_rate=$(awk "BEGIN {print ${frame_rate_expression}}")
+            ffmpeg -ss "${page_delay}" -i "${VIDEOS_DIRECTORY}${flow_name}.webm" "${VIDEOS_DIRECTORY}${flow_name}-trimmed.webm"
+            mv -f "${VIDEOS_DIRECTORY}${flow_name}-trimmed.webm" "${VIDEOS_DIRECTORY}${flow_name}.webm"
+            ffmpeg -i "${VIDEOS_DIRECTORY}${flow_name}.webm" -vf "fps=${frame_rate},scale=${IMAGE_WIDTH}:-1:flags=lanczos,palettegen" -update 1 "${IMAGES_DIRECTORY}${flow_name}-palette.png"
+            ffmpeg -i "${VIDEOS_DIRECTORY}${flow_name}.webm" -i "${IMAGES_DIRECTORY}${flow_name}-palette.png" -filter_complex "[0:v]fps=${frame_rate},scale=${IMAGE_WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse" "${IMAGES_DIRECTORY}${flow_name}.gif"
+          done
+        env:
+          FLOWS_DIRECTORY: ${{ steps.define_variables.outputs.FLOWS_DIRECTORY }}
+          IMAGE_WIDTH: ${{ steps.define_variables.outputs.IMAGE_WIDTH }}
+          IMAGES_DIRECTORY: ${{ steps.define_variables.outputs.IMAGES_DIRECTORY }}
+          PAGE_LOAD_DELAY: ${{ steps.define_variables.outputs.PAGE_LOAD_DELAY }}
+          PAGE_RESPONSE_DELAY: ${{ steps.define_variables.outputs.PAGE_RESPONSE_DELAY }}
+          VIDEOS_DIRECTORY: ${{ steps.define_variables.outputs.VIDEOS_DIRECTORY }}
+
+      - name: Upload images as artifacts
+        id: upload_artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.define_variables.outputs.ARTIFACT_NAME }}
+          path: ${{ steps.define_variables.outputs.IMAGES_DIRECTORY }}*.gif
+
+      - name: Comment artifacts URL to pull request
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          issue-number: ${{ steps.define_variables.outputs.pr_number }}
+          body: |
+            The artifacts have been uploaded.
+            ${{ steps.upload_artifacts.outputs.artifact-url }}
