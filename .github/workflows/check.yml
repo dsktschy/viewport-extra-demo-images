@@ -41,3 +41,7 @@ jobs:
       - name: Format docs
         shell: bash
         run: npm run stylecheck:docs -- "**/*.md"
+
+      - name: Check types
+        shell: bash
+        run: npm run typecheck
