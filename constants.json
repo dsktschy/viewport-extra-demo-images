@@ -1,0 +1,19 @@
+{
+  "ARTIFACT_NAME": "artifacts",
+  "CONTENT_WIDTH": 412,
+  "DEVICE_NAME": "Nexus 5",
+  "FLOWS_DIRECTORY": "scripts/flows/",
+  "HOST": "localhost",
+  "IMAGE_WIDTH": 240,
+  "IMAGES_DIRECTORY": "artifacts/images/",
+  "INTERACTION_DELAY": 500,
+  "POINTER_VISIBLE_ATTRIBUTE_NAME": "data-pointer-visible",
+  "PAGE_LOAD_DELAY": 1000,
+  "PAGE_RESPONSE_DELAY": 250,
+  "PORT": 3000,
+  "TOUCHING_ATTRIBUTE_NAME": "data-touching",
+  "TOUCH_MOVE_FRAME_COUNT": 20,
+  "TOUCH_MOVE_FRAME_DELAY": 16,
+  "TOUCH_SLOP": 16,
+  "VIDEOS_DIRECTORY": "artifacts/videos/"
+}
