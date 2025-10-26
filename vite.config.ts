@@ -1,0 +1,42 @@
+import { devices } from "playwright";
+import { defineConfig } from "vite";
+import constants from "./constants.json" with { type: "json" };
+
+export default defineConfig(() => {
+  const additionalConstants: Record<string, string> = {
+    VIEWPORT_WIDTH: `${devices[constants.DEVICE_NAME]?.viewport.width ?? 0}`,
+    VIEWPORT_HEIGHT: `${devices[constants.DEVICE_NAME]?.viewport.height ?? 0}`,
+  };
+
+  return {
+    server: {
+      host: constants.HOST,
+      port: constants.PORT,
+    },
+    preview: {
+      host: constants.HOST,
+      port: constants.PORT,
+    },
+    build: {
+      rollupOptions: {
+        input: [
+          "after-applied.en.html",
+          "before-applied.en.html",
+          "after-applied.ja.html",
+          "before-applied.ja.html",
+        ],
+      },
+    },
+    plugins: [
+      {
+        name: "html-transform",
+        transformIndexHtml: (html) =>
+          Object.entries({ ...constants, ...additionalConstants }).reduce(
+            (html, [placeholder, value]) =>
+              html.replaceAll(`__${placeholder}__`, `${value}`),
+            html,
+          ),
+      },
+    ],
+  };
+});
