@@ -29,6 +29,8 @@
     "palettegen",
     "paletteuse",
     "netcat",
-    "dpkg"
+    "dpkg",
+    "nokey",
+    "noprint"
   ]
 }
