@@ -6,6 +6,7 @@ on:
       - closed
 
 permissions:
+  actions: read
   contents: write
   pull-requests: write
 
@@ -44,8 +45,99 @@ jobs:
           echo "versioning_strategy=${versioning_strategy}" >> "${GITHUB_OUTPUT}"
 
       - name: Publish tag and release
+        id: publish_tag_and_release
         uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # 4.4.0
         with:
           config-file: release-please-config.${{ steps.define_variables.outputs.versioning_strategy }}.json
           skip-github-pull-request: true
           target-branch: ${{ github.event.pull_request.base.ref }}
+    outputs:
+      releases_created: ${{ steps.publish_tag_and_release.outputs.releases_created }}
+
+  publish_artifacts:
+    needs: release
+    if: ${{ fromJSON(needs.release.outputs.releases_created) }}
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install Ubuntu dependencies
+        shell: bash
+        run: |
+          package_list=(
+            jq
+            git
+          )
+          missing_package_list=()
+          for package in "${package_list[@]}"; do
+            if ! dpkg-query -W "${package}"; then
+              missing_package_list+=("${package}")
+            fi
+          done
+          if [ ${#missing_package_list[@]} -ne 0 ]; then
+            sudo apt-get update
+            sudo apt-get install -y "${missing_package_list[@]}"
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Define variables
+        id: define_variables
+        run: |
+          keys=(
+            ARTIFACT_NAME
+          )
+          for key in "${keys[@]}"; do
+            value=$(jq -r ".${key}" constants.json)
+            echo "${key}=${value}" >> "${GITHUB_OUTPUT}"
+          done
+          version=$(jq -r .version package.json)
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Switch to artifacts branch
+        shell: bash
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          if git fetch origin artifacts; then
+            git switch artifacts
+          else
+            git switch --orphan artifacts
+            git reset --hard
+          fi
+
+      - name: Download artifacts
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
+        with:
+          workflow: create-release-pull-request.yml
+          name: ${{ steps.define_variables.outputs.ARTIFACT_NAME }}
+
+      - name: Push artifacts to artifacts branch
+        shell: bash
+        run: |
+          git add .
+          git commit -m "chore: publish v${VERSION} artifacts" --allow-empty
+          git tag "v${VERSION}-artifacts"
+          git push origin artifacts --tags
+        env:
+          VERSION: ${{ steps.define_variables.outputs.version }}
+
+      - name: Add link to artifacts branch in release body
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: `v${process.env.VERSION}`,
+            });
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              body:
+                `[Artifacts](https://github.com/dsktschy/viewport-extra-demo-images/tree/v${process.env.VERSION}-artifacts)\n\n` +
+                release.data.body,
+            });
+        env:
+          VERSION: ${{ steps.define_variables.outputs.version }}
