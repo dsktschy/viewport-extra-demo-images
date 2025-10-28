@@ -3,7 +3,7 @@ import type { Flow } from "../internal/Flow.ts";
 export const execute: Flow["execute"] = async ({
   browser,
   devices,
-  flowName,
+  artifactName,
   constants: {
     PAGE_LOAD_DELAY,
     INTERACTION_DELAY,
@@ -28,7 +28,9 @@ export const execute: Flow["execute"] = async ({
   const video = page.video();
   if (!video) throw new Error("No video object");
 
-  const response = await page.goto(`http://${HOST}:${PORT}/${flowName}.html`);
+  const response = await page.goto(
+    `http://${HOST}:${PORT}/${artifactName}.html`,
+  );
   const status = response?.status() ?? 0;
   if (status !== 200) throw new Error(`Invalid response status: ${status}`);
 
@@ -142,7 +144,7 @@ export const execute: Flow["execute"] = async ({
   await page.waitForTimeout(INTERACTION_DELAY);
 
   await context.close();
-  await video.saveAs(`${VIDEOS_DIRECTORY}${flowName}.webm`);
+  await video.saveAs(`${VIDEOS_DIRECTORY}${artifactName}.webm`);
   // Delete temporary video
   await video.delete();
 };
