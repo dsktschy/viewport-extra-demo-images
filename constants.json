@@ -3,12 +3,22 @@
   "CONTENT_WIDTH": 412,
   "DEVICE_NAME": "Nexus 5",
   "FLOWS_DIRECTORY": "scripts/flows/",
+  "FLOW_META_LIST": [
+    {
+      "name": "scale-down-page-on-small-viewport-widths-en",
+      "artifactStemList": ["after-applying", "before-applying"]
+    },
+    {
+      "name": "scale-down-page-on-small-viewport-widths-ja",
+      "artifactStemList": ["after-applying", "before-applying"]
+    }
+  ],
   "HOST": "localhost",
   "IMAGES_DIRECTORY": "artifacts/images/",
   "IMAGE_WIDTH": 240,
   "INTERACTION_DELAY": 500,
   "PAGE_LOAD_DELAY": 1000,
-  "PAGE_RESPONSE_DELAY": 325,
+  "PAGE_RESPONSE_DELAY": 275,
   "POINTER_VISIBLE_ATTRIBUTE_NAME": "data-pointer-visible",
   "PORT": 3000,
   "TOUCHING_ATTRIBUTE_NAME": "data-touching",
