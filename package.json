@@ -11,13 +11,31 @@
   },
   "type": "module",
   "devDependencies": {
+    "@biomejs/biome": "2.2.4",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
     "cspell": "9.2.1",
-    "lefthook": "1.13.4"
+    "globby": "15.0.0",
+    "lefthook": "1.13.4",
+    "npm-run-all": "4.1.5",
+    "playwright": "1.55.1",
+    "prettier": "3.6.2",
+    "tsx": "4.20.6",
+    "typescript": "5.9.2",
+    "vite": "7.1.7"
   },
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "generate-videos": "npm-run-all --sequential generate-videos:install 'generate-videos:execute -- {@}' --",
+    "generate-videos:install": "playwright install chromium --with-deps",
+    "generate-videos:execute": "tsx scripts/entries/execute-flows.ts",
+    "list-flow-names": "tsx scripts/entries/list-flow-names.ts",
     "commitcheck": "commitlint --edit",
-    "spellcheck": "cspell lint --no-must-find-files"
+    "spellcheck": "cspell lint --no-must-find-files",
+    "stylecheck:code": "biome check --no-errors-on-unmatched",
+    "stylecheck:docs": "prettier --check --no-error-on-unmatched-pattern",
+    "typecheck": "tsc --noEmit"
   }
 }
