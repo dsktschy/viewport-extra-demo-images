@@ -21,6 +21,14 @@
     "commitcheck",
     "stabilizable",
     "autorelease",
+    "stylecheck",
+    "nodenext",
+    "dawidd",
+    "ffprobe",
+    "lanczos",
+    "palettegen",
+    "paletteuse",
+    "netcat",
     "dpkg"
   ]
 }
