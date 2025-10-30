@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "module": "nodenext",
+    "lib": ["esnext", "dom"],
+    "strict": true,
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "exclude": ["node_modules", "dist"],
+  "include": [
+    "**/*.ts",
+    "**/*.mts",
+    "**/*.cts",
+    "**/.*.ts",
+    "**/.*.mts",
+    "**/.*.cts"
+  ]
+}

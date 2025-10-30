@@ -1,0 +1,334 @@
+:root {
+  --viewport-scale: 0;
+  --viewport-width: 0px;
+  --viewport-height: 0px;
+  --global-gap: calc(
+    (
+      var(--viewport-height) -
+      var(--caption-height) -
+      var(--content-caption-height) -
+      var(--pointer-height) -
+      var(--scrollbar-height)
+    ) /
+    4
+  );
+  --line-color-rgb: 255, 255, 255;
+  --shadow-color-rgb: 0, 0, 0;
+  --shadow-opacity: 75%;
+
+  --body-scroll-left-number: 0;
+
+  --caption-height: calc(
+    var(--caption-gap) +
+    var(--caption-heading-font-size) +
+    var(--caption-body-font-size) +
+    var(--caption-body-row-gap) +
+    var(--caption-body-font-size)
+  );
+  --caption-gap: 4.2rem;
+  --caption-text-shadow: 0.3em;
+  --caption-heading-font-size: 2.7rem;
+  --caption-body-font-size: 2rem;
+  --caption-body-row-gap: 2.2rem;
+
+  --content-width: 0px;
+  --content-width-number: 0;
+  --content-caption-height: 3rem;
+
+  --pointer-x: 0px;
+  --pointer-y: 0px;
+  --pointer-height: calc(var(--pointer-radius) * 2);
+  --pointer-border-width: 0.2rem;
+  --pointer-after-radius: 1rem;
+  --pointer-radius: calc(
+    var(--pointer-border-width) +
+    var(--pointer-after-radius)
+  );
+  --pointer-opacity: 50%;
+
+  --scrollbar-height: calc(
+    var(--scrollbar-padding) +
+    var(--scrollbar-body-height)
+  );
+  --scrollbar-padding: 0.4rem;
+  --scrollbar-body-height: 0.4rem;
+  --scrollbar-body-scale: 0;
+  --scrollbar-body-opacity: 75%;
+}
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+
+  /**
+   * Use rem units to keep same proportions as 360 pixel viewport as viewport width changes
+   */
+  font-size: calc(var(--viewport-width) * (10 / 360));
+
+  /**
+   * Keep fixed-position elements fixed relative to viewport even on mobile devices
+   * and suppress bounce effect on iOS
+   */
+  overflow: hidden;
+}
+
+body {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  overflow: auto hidden;
+  font-family: "Noto Sans JP", sans-serif;
+  font-weight: 700;
+  color: rgb(var(--line-color-rgb));
+
+  /**
+   * Cause body element to scroll horizontally even in Playwright flows
+   */
+  overscroll-behavior: contain;
+}
+
+.caption {
+  position: fixed;
+  top: var(--global-gap);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--caption-gap);
+  margin: 0 auto;
+}
+
+.caption__heading {
+  line-height: 1;
+  font-size: var(--caption-heading-font-size);
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: 0 var(--caption-text-shadow) var(--caption-text-shadow)
+    rgba(var(--shadow-color-rgb), var(--shadow-opacity));
+}
+
+.caption__body {
+  display: grid;
+  grid-template-columns: auto auto;
+  row-gap: var(--caption-body-row-gap);
+  column-gap: 0.6rem;
+}
+
+.caption__label,
+.caption__value {
+  line-height: 1;
+  font-size: var(--caption-body-font-size);
+  text-shadow: 0 var(--caption-text-shadow) var(--caption-text-shadow)
+    rgba(var(--shadow-color-rgb), var(--shadow-opacity));
+
+  html[lang="en"] & {
+    letter-spacing: -0.04em;
+  }
+
+  html[lang="ja"] & {
+    letter-spacing: 0;
+  }
+}
+
+.caption__label {
+  text-align: right;
+}
+
+.caption__value {
+  text-align: left;
+}
+
+.content {
+  position: relative;
+  z-index: 0;
+  width: var(--content-width);
+  height: 100%;
+
+  /**
+   * From indigo-900 to teal-700 in Tailwind colors
+   */
+  background-image: linear-gradient(
+    to bottom right,
+    oklch(35.9% 0.144 278.697),
+    oklch(51.1% 0.096 186.391)
+  );
+}
+
+.content__caption {
+  position: absolute;
+  top: calc(var(--global-gap) + var(--caption-height) + var(--global-gap));
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: calc(2.1rem * var(--viewport-scale));
+  width: 100%;
+  height: var(--content-caption-height);
+}
+
+.content__text {
+  line-height: 1;
+  font-size: calc(3rem * var(--viewport-scale));
+  letter-spacing: 0;
+}
+
+.content__left-arrow,
+.content__right-arrow {
+  position: relative;
+  flex-grow: 1;
+  height: calc(0.4rem * var(--viewport-scale));
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    display: block;
+    width: 35%;
+    height: 100%;
+    background-color: rgb(var(--line-color-rgb));
+  }
+
+  &::before {
+    top: 50%;
+  }
+
+  &::after {
+    bottom: 50%;
+  }
+}
+
+.content__left-arrow {
+  /**
+   * Make shaft transparent where it passes through arrowhead
+   */
+  background-image: linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(0.3rem * var(--viewport-scale)),
+    rgb(var(--line-color-rgb)) calc(0.3rem * var(--viewport-scale)),
+    rgb(var(--line-color-rgb)) 100%
+  );
+
+  &::before,
+  &::after {
+    left: 0;
+  }
+
+  &::before {
+    transform-origin: left top;
+    transform: rotate(-45deg);
+  }
+
+  &::after {
+    transform-origin: left bottom;
+    transform: rotate(45deg);
+  }
+}
+
+.content__right-arrow {
+  /**
+   * Make shaft transparent where it passes through arrowhead
+   */
+  background-image: linear-gradient(
+    to left,
+    transparent 0,
+    transparent calc(0.3rem * var(--viewport-scale)),
+    rgb(var(--line-color-rgb)) calc(0.3rem * var(--viewport-scale)),
+    rgb(var(--line-color-rgb)) 100%
+  );
+
+  &::before,
+  &::after {
+    right: 0;
+  }
+
+  &::before {
+    transform-origin: right top;
+    transform: rotate(45deg);
+  }
+
+  &::after {
+    transform-origin: right bottom;
+    transform: rotate(-45deg);
+  }
+}
+
+.left-pointer-anchor,
+.right-pointer-anchor {
+  position: fixed;
+  top: calc(
+    var(--global-gap) +
+    var(--caption-height) +
+    var(--global-gap) +
+    var(--content-caption-height) +
+    var(--global-gap) +
+    var(--pointer-radius)
+  );
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.left-pointer-anchor {
+  left: calc(var(--viewport-width) * (1 / 4));
+}
+
+.right-pointer-anchor {
+  left: calc(var(--viewport-width) * (3 / 4));
+}
+
+.pointer {
+  position: fixed;
+  top: calc(-1 * var(--pointer-radius));
+  left: calc(-1 * var(--pointer-radius));
+  z-index: 1;
+  border: var(--pointer-border-width) solid
+    rgba(var(--line-color-rgb), var(--pointer-opacity));
+  border-radius: 100%;
+  transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+
+  &::after {
+    content: "";
+    display: block;
+    width: calc(var(--pointer-after-radius) * 2);
+    height: calc(var(--pointer-after-radius) * 2);
+    background-color: rgba(var(--shadow-color-rgb), var(--pointer-opacity));
+  }
+}
+
+/**
+ * Show scrollbar even in Playwright flows
+ */
+.scrollbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  padding: 0 var(--scrollbar-padding) var(--scrollbar-padding);
+}
+
+.scrollbar__body {
+  width: 100%;
+  height: var(--scrollbar-body-height);
+  transform: translate3d(
+      calc(
+        (var(--viewport-width) - var(--scrollbar-padding) * 2) *
+        (var(--body-scroll-left-number) / var(--content-width-number))
+      ),
+      0,
+      0
+    )
+    scaleX(var(--scrollbar-body-scale));
+  transform-origin: left;
+  background-color: rgb(var(--line-color-rgb), var(--scrollbar-body-opacity));
+}

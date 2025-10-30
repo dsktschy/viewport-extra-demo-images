@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap"
+      rel="stylesheet"
+    >
+    <link href="/src/styles/globals.css" rel="stylesheet">
+    <script src="/src/scripts/main.ts" type="module"></script>
+    <title>Viewport Extra 適用後</title>
+  </head>
+  <body>
+    <div class="caption">
+      <div class="caption__heading">Viewport Extra 適用後</div>
+      <div class="caption__body">
+        <div class="caption__label">ビューポート幅 :</div>
+        <div class="caption__value">__VIEWPORT_WIDTH__px</div>
+        <div class="caption__label">ビューポートの最小幅 :</div>
+        <div class="caption__value">__CONTENT_WIDTH__px</div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="content__caption">
+        <div class="content__left-arrow"></div>
+        <div class="content__text">幅 __CONTENT_WIDTH__px のページ</div>
+        <div class="content__right-arrow"></div>
+      </div>
+    </div>
+    <div class="left-pointer-anchor" data-testid="left-pointer-anchor"></div>
+    <div class="right-pointer-anchor" data-testid="right-pointer-anchor"></div>
+    <div class="pointer"></div>
+    <div class="scrollbar">
+      <div class="scrollbar__body"></div>
+    </div>
+
+    <!-- To append style element after link elements -->
+    <script>
+      const styleElement = document.createElement('style');
+      styleElement.textContent = `
+        :root {
+          --viewport-scale: calc(__VIEWPORT_WIDTH__ / __CONTENT_WIDTH__);
+          --viewport-width: __VIEWPORT_WIDTH__px;
+          --viewport-height: __VIEWPORT_HEIGHT__px;
+          --content-width: __VIEWPORT_WIDTH__px;
+          --content-width-number: __VIEWPORT_WIDTH__;
+          --scrollbar-body-scale: 0;
+        }
+
+        .pointer {
+          html[__POINTER_VISIBLE_ATTRIBUTE_NAME__][__TOUCHING_ATTRIBUTE_NAME__] & {
+            opacity: 1;
+          }
+        }
+      `
+      document.head.appendChild(styleElement)
+    </script>
+  </body>
+</html>
