@@ -20,12 +20,11 @@ export default defineConfig(() => {
     },
     build: {
       rollupOptions: {
-        input: [
-          "after-applying.en.html",
-          "before-applying.en.html",
-          "after-applying.ja.html",
-          "before-applying.ja.html",
-        ],
+        input: constants.FLOW_META_LIST.flatMap((flowMeta) =>
+          flowMeta.artifactStemList.map(
+            (artifactStem) => `${flowMeta.name}/${artifactStem}.html`,
+          ),
+        ),
       },
     },
     plugins: [
