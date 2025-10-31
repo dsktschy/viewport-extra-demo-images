@@ -5,7 +5,7 @@ export type Flow = {
   execute: (context: {
     browser: Browser;
     devices: typeof devices;
-    flowName: string;
+    artifactName: string;
     constants: typeof constants;
   }) => Promise<void>;
 };
