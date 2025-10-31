@@ -69,7 +69,6 @@ jobs:
         run: |
           key_list=(
             ARTIFACT_NAME
-            FLOWS_DIRECTORY
             HOST
             IMAGES_DIRECTORY
             IMAGE_WIDTH
@@ -106,28 +105,44 @@ jobs:
         run: |
           npm run preview &
           until nc -z -w1 "${HOST}" "${PORT}"; do sleep 1; done
-          npm run generate-videos -- "${FLOWS_DIRECTORY}"
+          npm run generate-videos
         env:
-          FLOWS_DIRECTORY: ${{ steps.define_variables.outputs.FLOWS_DIRECTORY }}
           HOST: ${{ steps.define_variables.outputs.HOST }}
           PORT: ${{ steps.define_variables.outputs.PORT }}
 
       - name: Convert videos to images
         shell: bash
         run: |
-          mkdir -p "${IMAGES_DIRECTORY}"
-          flow_name_list=($(npm run list-flow-names --silent -- "${FLOWS_DIRECTORY}"))
-          page_delay=$(awk "BEGIN {print (${PAGE_LOAD_DELAY} + ${PAGE_RESPONSE_DELAY}) / 1000}")
-          for flow_name in "${flow_name_list[@]}"; do
-            frame_rate_expression=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "${VIDEOS_DIRECTORY}${flow_name}.webm")
-            frame_rate=$(awk "BEGIN {print ${frame_rate_expression}}")
-            ffmpeg -ss "${page_delay}" -i "${VIDEOS_DIRECTORY}${flow_name}.webm" "${VIDEOS_DIRECTORY}${flow_name}-trimmed.webm"
-            mv -f "${VIDEOS_DIRECTORY}${flow_name}-trimmed.webm" "${VIDEOS_DIRECTORY}${flow_name}.webm"
-            ffmpeg -i "${VIDEOS_DIRECTORY}${flow_name}.webm" -vf "fps=${frame_rate},scale=${IMAGE_WIDTH}:-1:flags=lanczos,palettegen" -update 1 "${IMAGES_DIRECTORY}${flow_name}-palette.png"
-            ffmpeg -i "${VIDEOS_DIRECTORY}${flow_name}.webm" -i "${IMAGES_DIRECTORY}${flow_name}-palette.png" -filter_complex "[0:v]fps=${frame_rate},scale=${IMAGE_WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse" "${IMAGES_DIRECTORY}${flow_name}.gif"
+          flow_meta_json_list=($(jq -c ".FLOW_META_LIST[]" constants.json))
+          for flow_meta_json in "${flow_meta_json_list[@]}"; do
+            flow_name=$(echo "${flow_meta_json}" | jq -r .name)
+            mkdir -p "${IMAGES_DIRECTORY}${flow_name}"
+            artifact_stem_list=($(echo "${flow_meta_json}" | jq -r ".artifactStemList[]"))
+            artifact_name_list=()
+            frame_count_list=()
+            expected_frame_count=9223372036854775807 # Maximum integer instead of infinity
+            for artifact_stem in "${artifact_stem_list[@]}"; do
+              artifact_name="${flow_name}/${artifact_stem}"
+              artifact_name_list+=("${artifact_name}")
+              frame_count=$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 -count_frames "${VIDEOS_DIRECTORY}${artifact_name}.webm")
+              frame_count_list+=(${frame_count})
+              if [ ${frame_count} -lt ${expected_frame_count} ]; then
+                expected_frame_count=${frame_count}
+              fi
+            done
+            index=0
+            for artifact_name in "${artifact_name_list[@]}"; do
+              frame_rate_expression=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "${VIDEOS_DIRECTORY}${artifact_name}.webm")
+              frame_rate=$(awk "BEGIN {print ${frame_rate_expression}}")
+              page_delay_frame_count=$(awk "BEGIN {print int((${PAGE_LOAD_DELAY} + ${PAGE_RESPONSE_DELAY}) / 1000 * ${frame_rate})}")
+              overflow_frame_count=$((frame_count_list[index] - expected_frame_count))
+              trimming_frame_count=$(awk "BEGIN {print ${page_delay_frame_count} + ${overflow_frame_count}}")
+              ffmpeg -i "${VIDEOS_DIRECTORY}${artifact_name}.webm" -vf "trim=start_frame=${trimming_frame_count},fps=${frame_rate},scale=${IMAGE_WIDTH}:-1:flags=lanczos,palettegen" -update 1 "${IMAGES_DIRECTORY}${artifact_name}-palette.png"
+              ffmpeg -i "${VIDEOS_DIRECTORY}${artifact_name}.webm" -i "${IMAGES_DIRECTORY}${artifact_name}-palette.png" -filter_complex "[0:v]trim=start_frame=${trimming_frame_count},fps=${frame_rate},scale=${IMAGE_WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse" "${IMAGES_DIRECTORY}${artifact_name}.gif"
+              index=$((index + 1))
+            done
           done
         env:
-          FLOWS_DIRECTORY: ${{ steps.define_variables.outputs.FLOWS_DIRECTORY }}
           IMAGE_WIDTH: ${{ steps.define_variables.outputs.IMAGE_WIDTH }}
           IMAGES_DIRECTORY: ${{ steps.define_variables.outputs.IMAGES_DIRECTORY }}
           PAGE_LOAD_DELAY: ${{ steps.define_variables.outputs.PAGE_LOAD_DELAY }}
@@ -139,7 +154,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ steps.define_variables.outputs.ARTIFACT_NAME }}
-          path: ${{ steps.define_variables.outputs.IMAGES_DIRECTORY }}*.gif
+          path: ${{ steps.define_variables.outputs.IMAGES_DIRECTORY }}**/*.gif
 
       - name: Comment artifacts URL to pull request
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
