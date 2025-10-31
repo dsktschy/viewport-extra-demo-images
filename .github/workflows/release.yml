@@ -101,6 +101,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           if git fetch origin artifacts; then
             git switch artifacts
+            find . -mindepth 1 -delete
           else
             git switch --orphan artifacts
             git reset --hard

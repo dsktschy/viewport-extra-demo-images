@@ -3,6 +3,16 @@
   "CONTENT_WIDTH": 412,
   "DEVICE_NAME": "Nexus 5",
   "FLOWS_DIRECTORY": "scripts/flows/",
+  "FLOW_META_LIST": [
+    {
+      "name": "scale-down-page-on-small-viewport-widths-en",
+      "artifactStemList": ["after-applying", "before-applying"]
+    },
+    {
+      "name": "scale-down-page-on-small-viewport-widths-ja",
+      "artifactStemList": ["after-applying", "before-applying"]
+    }
+  ],
   "HOST": "localhost",
   "IMAGES_DIRECTORY": "artifacts/images/",
   "IMAGE_WIDTH": 240,
